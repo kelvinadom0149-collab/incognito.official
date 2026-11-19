@@ -1,0 +1,7 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { requireReviewer } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+
+const captureSchema=z.object({query:z.string().trim().min(3).max(300),relevanceScore:z.number().int().min(0).max(100).optional()});
+export async function POST(request:NextRequest){try{await requireReviewer(request);const body=captureSchema.parse(await request.json());const [googleResponse,redditResponse]=await Promise.all([fetch('https://google.serper.dev/search',{method:'POST',headers:{'X-API-KEY':process.env.SERPER_API_KEY||'', 'Content-Type':'application/json'},body:JSON.stringify({q:body.query,num:3})}),fetch(`https://www.reddit.com/search.json?q=${encodeURIComponent(body.query)}&limit=3`,{headers:{'User-Agent':process.env.REDDIT_USER_AGENT||'IncognitoMarketplace/1.0'}})]);const google=googleResponse.ok?await googleResponse.text():'';const reddit=redditResponse.ok?await redditResponse.text():'';const created=await prisma.buyingQuestion.create({data:{query:body.query,source:'google',sourceUrl:`https://www.google.com/search?q=${encodeURIComponent(body.query)}`,relevanceScore:body.relevanceScore||0,googleResult:google.slice(0,50000),redditResult:reddit.slice(0,50000)}});return NextResponse.json(created,{status:201})}catch(error){if(error instanceof z.ZodError)return NextResponse.json({error:'Invalid buying question'}, {status:400});return NextResponse.json({error:'Capture failed'}, {status:500})}}

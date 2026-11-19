@@ -1,0 +1,1 @@
+export default function AdminLogin(){return <main className="shell"><h1>Reviewer sign-in</h1><p>Configure a secure OIDC/JWT identity provider. Set <code>incognito_admin_token</code> only through a trusted authentication callback.</p></main>}

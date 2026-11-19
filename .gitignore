@@ -1,0 +1,9 @@
+node_modules/
+.venv/
+.next/
+.env*
+!.env.example
+*.log
+*.tsbuildinfo
+__pycache__/
+*.py[cod]

@@ -1,0 +1,7 @@
+{
+  "crons": [
+    { "path": "/api/cron/sla-check", "schedule": "0 * * * *" },
+    { "path": "/api/cron/ghost-inventory", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/question-discovery", "schedule": "0 4 * * *" }
+  ]
+}

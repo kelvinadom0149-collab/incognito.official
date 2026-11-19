@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductStatus {
+  DRAFT
+  PENDING_STAGE_2
+  REJECTED_STAGE_1
+  REJECTED_STAGE_2
+  AWAITING_SELLER_EDIT
+  LIVE
+  SOLD_OUT
+  PAUSED
+  ARCHIVED
+}
+
+enum FulfillmentMethod {
+  SMART_LOCKER
+  BLIND_SHIPPING
+  DIGITAL_DOWNLOAD
+}
+
+enum Condition {
+  NEW
+  USED
+  REFURBISHED
+}
+
+model Seller {
+  id                   String    @id @default(cuid())
+  alias                String    @unique
+  emailHash            String    @unique
+  kycStatus            String    @default("PENDING")
+  stripeAccountId      String?   @unique
+  stripeAccountStatus  String    @default("PENDING")
+  payoutFrozen         Boolean   @default(false)
+  accountAgeAtReview   Int?
+  totalPreviousSales   Int       @default(0)
+  reputationScore      Float     @default(0)
+  previousDisputes     Int       @default(0)
+  blocked              Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  products             Product[]
+  verificationLogs     VerificationLog[]
+}
+
+model Product {
+  id                  String             @id @default(cuid())
+  listingId           String             @unique
+  sellerId            String
+  seller              Seller             @relation(fields: [sellerId], references: [id])
+  title               String
+  slug                String             @unique
+  category            String
+  condition           Condition
+  priceUsdCents      Int
+  quantity            Int                @default(1)
+  soldCount           Int                @default(0)
+  description         String             @db.Text
+  imageUrls           String[]
+  proofVideoUrl       String?
+  proofCode           String?
+  fulfillment         FulfillmentMethod
+  status              ProductStatus      @default(DRAFT)
+  reservedUntil       DateTime?
+  lastVerifiedAt      DateTime           @default(now())
+  views               Int                @default(0)
+  aiRiskScore         Int                @default(0)
+  aiRiskReason        String?
+  rejectionReason     String?
+  auditFlag           Boolean            @default(false)
+  autoApprovedAt      DateTime?
+  sellerEditNote      String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  verificationLogs    VerificationLog[]
+  recommendations     Recommendation[]
+
+  @@index([status, reservedUntil])
+  @@index([status, lastVerifiedAt, views, soldCount])
+}
+
+model VerificationLog {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sellerId    String
+  seller      Seller   @relation(fields: [sellerId], references: [id])
+  stage       String
+  decision    String
+  riskScore   Int?
+  reason      String?
+  reviewerId  String?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([productId, stage, createdAt])
+}
+
+model BuyingQuestion {
+  id              String           @id @default(cuid())
+  query           String
+  source          String
+  sourceUrl       String
+  capturedAt      DateTime         @default(now())
+  relevanceScore  Int
+  status          String           @default("OPEN")
+  googleResult    String?          @db.Text
+  redditResult    String?          @db.Text
+  recommendations Recommendation[]
+}
+
+model Recommendation {
+  id             String         @id @default(cuid())
+  questionId     String
+  question       BuyingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product        @relation(fields: [productId], references: [id])
+  draftBody      String         @db.Text
+  googleResult   String?        @db.Text
+  redditResult   String?        @db.Text
+  publishedUrl   String?
+  publishedAt    DateTime?
+  clicks         Int            @default(0)
+  conversions    Int            @default(0)
+  status         String         @default("DRAFTED")
+  createdAt      DateTime       @default(now())
+
+  @@index([questionId])
+  @@index([productId])
+}
