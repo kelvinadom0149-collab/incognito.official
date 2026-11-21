@@ -2,7 +2,9 @@
 
 The Next.js App Router site is the customer storefront. It shows up to six featured **live, in-stock, approved** listings by default, with catalog search/category filters, a larger catalog view, bag/cart, customer account registration/login/WhatsApp verification, and a Ghana delivery details form. The seller workspace at `/seller/upload` now uses the same Ghana API for seller signup, private listing management, media uploads, and submission to moderation. Customer and seller contact information stays private. The legacy `index.html` file is an older browser-only demo; use `npm run dev` for the current site.
 
-The Next.js storefront talks to the Ghana FastAPI backend through a same-origin proxy. Set `MARKETPLACE_API_URL` (for example `http://localhost:8000`) in `.env.local`, then start the FastAPI/Postgres services using the Docker Compose instructions in `backend/DEPLOYMENT.md`. Only products whose moderation status is `live` appear in the public catalog. Checkout currently records an authenticated delivery/order request and makes the delivery quote explicit; it does not collect payment until the company confirms delivery cost. Do not treat it as a live payment flow until Paystack and settlement, order updates, and delivery quoting have been implemented and configured.
+The Next.js storefront talks to the Ghana FastAPI backend through a same-origin proxy. For `npm run dev`, set `MARKETPLACE_API_URL` (for example `http://localhost:8000`) in `.env.local`, then start the FastAPI/Postgres services using the Docker Compose instructions in `backend/DEPLOYMENT.md`. In the Vercel services deployment, Vercel injects `MARKETPLACE_API_URL` into the app from its private backend binding; do not set that variable in Vercel project settings. Only products whose moderation status is `live` appear in the public catalog. Checkout currently records an authenticated delivery/order request and makes the delivery quote explicit; it does not collect payment until the company confirms delivery cost. Do not treat it as a live payment flow until Paystack and settlement, order updates, and delivery quoting have been implemented and configured.
+
+Seller product photos are background-processed and positioned in the browser in `components/seller/ProductCanvas.tsx`. Only after the seller confirms the crop is a 2214 × 2214 WebP added to the listing upload; raw source images are not sent to a background-removal service. `@imgly/background-removal` is distributed under AGPL-3.0; review its license and any commercial licensing requirements before production deployment.
 
 ## Product direction
 
@@ -18,7 +20,7 @@ The Next.js App Router implementation is under `/seller/upload`, `/admin/review`
 
 ### Run locally
 
-1. Copy `.env.example` to `.env.local`; set `MARKETPLACE_API_URL` to the FastAPI API Gateway URL (or `http://localhost:8000` locally). Provide the remaining secrets required by the routes you intend to run.
+1. Copy `.env.example` to `.env.local`; for `npm run dev`, set `MARKETPLACE_API_URL` to the FastAPI API Gateway URL (or `http://localhost:8000` locally). With `vercel dev`, the service binding injects it. Provide the remaining secrets required by the routes you intend to run.
 2. Run `npm install`, `npx prisma generate`, and `npx prisma migrate dev`.
 3. Start the app with `npm run dev`.
 4. Call cron routes locally with `Authorization: Bearer $CRON_SECRET`:
